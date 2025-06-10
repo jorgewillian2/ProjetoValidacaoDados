@@ -1,4 +1,4 @@
-const SHEET_URL = 'https://api.sheetbest.com/sheets/6ce493a0-f0f3-403e-b910-cda5b3b9608c';
+const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const main = document.getElementById("main");
