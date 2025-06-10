@@ -1,88 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+:root {
+  --primary: #0052cc;
+  --primary-hover: #003d99;
+  --bg: #f7f9fc;
+  --card-bg: #ffffff;
+  --text: #222;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f2f4f8;
-  color: #333;
   margin: 0;
-  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 .container {
-  max-width: 960px;
-  margin: auto;
-  padding: 20px;
+  max-width: 1024px;
+  margin: 40px auto;
+  padding: 0 15px;
 }
 
 h1 {
   text-align: center;
-  color: #1f3c88;
-  font-size: 3rem;
-}
-
-.card {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 20px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
-}
-
-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  color: var(--primary);
+  font-size: 2.5rem;
   margin-bottom: 20px;
 }
 
-form input, form select {
-  flex: 1 1 30%;
-  padding: 10px;
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+input[type="text"],
+input[type="password"],
+select,
+button {
+  padding: 12px 16px;
+  font-size: 1rem;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  border-radius: 5px;
 }
 
-form button {
-  padding: 10px 15px;
-  background-color: #1f3c88;
-  color: white;
+input,
+select {
+  background: #f0f2f5;
+  transition: border 0.2s;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+button {
+  background: var(--primary);
+  color: #fff;
   border: none;
-  border-radius: 5px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
 }
 
-form button:hover {
-  background-color: #163170;
+button:hover {
+  background: var(--primary-hover);
+}
+
+button.logout {
+  float: right;
+  padding: 8px 14px;
+  margin-top: -10px;
+}
+
+.error {
+  color: #d93025;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 20px;
 }
 
-table th, table td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+th, td {
+  padding: 14px 10px;
   text-align: left;
+  border-bottom: 1px solid #e1e4e8;
 }
 
-.error {
-  color: red;
+th {
+  background: var(--bg);
+  font-weight: 600;
 }
 
-.btn-logout {
-  background-color: #0073b7; /* azul Sollo */
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 5px;
-  margin-bottom: 20px;
-  float: right;
-  transition: background-color 0.3s;
+td input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
 }
 
-.btn-logout:hover {
-  background-color: #005f94;
+td button {
+  background: #d93025;
+  padding: 6px 12px;
+}
+
+td button:hover {
+  background: #a52714;
 }
