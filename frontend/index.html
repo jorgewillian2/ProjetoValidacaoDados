@@ -3,56 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sollo - Validação de Dados</title>
+  <title>Sollo - Cadastro de funcionários</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div class="container">
-    <h1>Sollo</h1>
+    <h1>Sollo Validação</h1>
 
     <div id="login" class="card">
-      <h2>Login</h2>
+      <h2>Faça seu login</h2>
       <form id="login-form">
-        <input type="text" placeholder="Usuário" name="username" required/>
-        <input type="password" placeholder="Senha" name="password" required/>
+        <input type="text" name="username" placeholder="Usuário" required />
+        <input type="password" name="password" placeholder="Senha" required />
         <button type="submit">Entrar</button>
       </form>
       <p id="login-error" class="error"></p>
     </div>
 
-    <div id="main" class="card" style="display:none;">
-      <h2>Cadastro de Clientes</h2>
+    <div id="main" style="display:none;">
+      <div class="card">
+        <button class="logout" id="logout-button">Logout</button>
+        <h2>Cadastro de Clientes</h2>
+        <form id="add-form">
+          <input type="text" name="Nome Completo" placeholder="Nome Completo" required />
+          <input type="text" name="CPF" placeholder="CPF" required />
+          <input type="text" name="Numero" placeholder="Número de Contato" required />
+          <button type="submit">Adicionar</button>
+        </form>
 
-      <form id="add-form">
-        <input type="text" name="Nome Completo" placeholder="Nome Completo" required />
-        <input type="text" name="CPF" placeholder="CPF" required />
-        <input type="text" name="Numero" placeholder="Número de Contato" required />
-        <button type="submit">Adicionar</button>
-      </form>
+        <form id="upload-form">
+          <input type="file" name="file" accept=".xlsx" required />
+          <button type="submit">Importar Excel</button>
+        </form>
 
-      <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".xlsx" required/>
-        <button type="submit">Importar Excel</button>
-      </form>
+        <table id="data-table">
+          <thead>
+            <tr>
+              <th>Nome Completo</th>
+              <th>CPF</th>
+              <th>Numero</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-      <h3>Registros</h3>
-      <table id="data-table">
-        <thead>
-          <tr>
-            <th>Nome Completo</th>
-            <th>CPF</th>
-            <th>Numero</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="admin-panel" style="display:none;">
-        <h3>Gerenciar Usuários (Admin)</h3>
+      <div id="admin-panel" class="card" style="display:none;">
+        <h2>Gerenciar Usuários</h2>
         <form id="user-form">
-          <input type="text" name="username" placeholder="Novo usuário" required/>
-          <input type="password" name="password" placeholder="Senha" required/>
+          <input type="text" name="username" placeholder="Novo usuário" required />
+          <input type="password" name="password" placeholder="Senha" required />
           <select name="role">
             <option value="user">Usuário</option>
             <option value="admin">Administrador</option>
@@ -62,14 +63,17 @@
 
         <table id="user-table">
           <thead>
-            <tr><th>Usuário</th><th>Perfil</th><th>Ações</th></tr>
+            <tr>
+              <th>Usuário</th>
+              <th>Perfil</th>
+              <th>Ações</th>
+            </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
