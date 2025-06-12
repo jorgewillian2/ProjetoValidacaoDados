@@ -1,47 +1,62 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sollo - Cadastro de funcionários</title>
+  <title>Sollo - Cadastro de Funcionários</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div class="container">
     <h1>Sollo Validação</h1>
 
+    <!-- LOGIN -->
     <div id="login" class="card">
       <h2>Faça seu login</h2>
       <form id="login-form">
-        <input type="text" name="username" placeholder="Usuário" required />
-        <input type="password" name="password" placeholder="Senha" required />
+        <input type="text" name="username" placeholder="Usuário" required/>
+        <input type="password" name="password" placeholder="Senha" required/>
         <button type="submit">Entrar</button>
       </form>
       <p id="login-error" class="error"></p>
     </div>
 
+    <!-- TELA PRINCIPAL -->
     <div id="main" style="display:none;">
       <div class="card">
         <button class="logout" id="logout-button">Logout</button>
         <h2>Cadastro de Clientes</h2>
+
+        <!-- Formulário de inclusão -->
         <form id="add-form">
-          <input type="text" name="Nome Completo" placeholder="Nome Completo" required />
-          <input type="text" name="CPF" placeholder="CPF" required />
-          <input type="text" name="Numero" placeholder="Número de Contato" required />
+          <input type="text" name="Nome Completo" placeholder="Nome Completo" required/>
+          <input type="text" name="CPF" placeholder="CPF" required/>
+          <input type="text" name="Numero" placeholder="Número de Contato" required/>
           <button type="submit">Adicionar</button>
         </form>
 
-        <form id="upload-form">
-          <input type="file" name="file" accept=".xlsx" required />
-          <button type="submit">Importar Excel</button>
-        </form>
+        <!-- Botão abre modal de importação Excel -->
+        <button id="open-import" class="btn-primary">Importar Excel</button>
 
+        <!-- Busca -->
+        <div class="search-container">
+          <input type="text" id="search-input" placeholder="🔍 Buscar clientes..."/>
+          <button id="search-button" title="Buscar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0
+                       1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10
+                       5 5 0 0 1 0 10z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Tabela de Clientes -->
         <table id="data-table">
           <thead>
             <tr>
               <th>Nome Completo</th>
               <th>CPF</th>
-              <th>Numero</th>
+              <th>Número</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -49,18 +64,18 @@
         </table>
       </div>
 
+      <!-- PAINEL ADMIN -->
       <div id="admin-panel" class="card" style="display:none;">
         <h2>Gerenciar Usuários</h2>
         <form id="user-form">
-          <input type="text" name="username" placeholder="Novo usuário" required />
-          <input type="password" name="password" placeholder="Senha" required />
+          <input type="text" name="username" placeholder="Novo usuário" required/>
+          <input type="password" name="password" placeholder="Senha" required/>
           <select name="role">
             <option value="user">Usuário</option>
             <option value="admin">Administrador</option>
           </select>
           <button type="submit">Criar Usuário</button>
         </form>
-
         <table id="user-table">
           <thead>
             <tr>
@@ -74,6 +89,24 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de Importação Excel -->
+  <div id="import-modal" class="modal" style="display:none;">
+    <div class="modal-content card">
+      <button class="modal-close" id="close-import">×</button>
+      <h2>Importar Clientes via Excel</h2>
+      <div class="import-body">
+        <div id="drop-area">
+          <p>Arraste o arquivo aqui, ou <span id="click-upload">clicar para selecionar</span></p>
+          <input type="file" id="import-file" accept=".xlsx,.xls" style="display:none;"/>
+        </div>
+        <a href="template.xlsx" download class="template-link">⬇ Template Download</a>
+        <button id="submit-import" class="btn-primary" disabled>Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
