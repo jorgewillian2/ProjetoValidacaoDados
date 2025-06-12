@@ -63,7 +63,8 @@ select {
   transition: border 0.2s;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--primary);
 }
@@ -99,7 +100,8 @@ table {
   margin-top: 20px;
 }
 
-th, td {
+th,
+td {
   padding: 14px 10px;
   text-align: left;
   border-bottom: 1px solid #e1e4e8;
@@ -110,19 +112,149 @@ th {
   font-weight: 600;
 }
 
-td input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
 td button {
-  background: #d93025;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
   padding: 6px 12px;
 }
 
 td button:hover {
+  opacity: 0.9;
+}
+
+/* Botões específicos */
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-editar {
+  background: #007bff;
+  margin-right: 5px;
+}
+
+.btn-editar:hover {
+  background: #0056b3;
+}
+
+td > button:nth-child(2) {
+  background: #d93025;
+}
+
+td > button:nth-child(2):hover {
   background: #a52714;
+}
+
+/* Busca / Lupa */
+.search-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+#search-input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px 0 0 8px;
+  background: #f0f2f5;
+  transition: border 0.2s;
+}
+
+#search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+#search-button {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#search-button:hover {
+  background: var(--bg);
+}
+
+#search-button svg {
+  vertical-align: middle;
+  fill: var(--primary);
+}
+
+/* Modal de edição */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 400px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  cursor: pointer;
+}
+
+/* Modal de importação Excel */
+#import-modal .modal-content h2 {
+  margin-top: 0;
+  color: var(--primary);
+}
+
+.import-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+#drop-area {
+  width: 100%;
+  padding: 40px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+}
+
+#drop-area.dragover {
+  border-color: var(--primary);
+  background: rgba(0, 82, 204, 0.05);
+}
+
+.template-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+#submit-import {
+  padding: 10px 20px;
 }
