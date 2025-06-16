@@ -1,11 +1,14 @@
 # backend/app.py
 
 import os
-import sqlite3
+from functools import wraps
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy
+from marshmallow import Schema, ValidationError, fields, validate
 
+# --- Configuração básica ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', 'frontend'))
 DB_PATH = os.path.join(BASE_DIR, 'users.db')
@@ -16,84 +19,150 @@ app = Flask(
     static_url_path='',
     template_folder=FRONTEND_DIR
 )
-app.secret_key = 'segredo123'
-CORS(app)
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    cursor.execute("SELECT * FROM users WHERE username = ?", ("admin",))
-    if not cursor.fetchone():
-        cursor.execute(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            ("admin", generate_password_hash("123456"), "admin")
-        )
-        conn.commit()
-    conn.close()
+# --- Segurança de cookies e CORS ---
+app.secret_key = os.getenv('SECRET_KEY') or 'substitua_por_um_valor_forte_em_producao'
+app.config['SESSION_COOKIE_SECURE'] = True      # Apenas HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True    # Evita acesso por JS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'   # Proteção CSRF básica
+CORS(app, supports_credentials=True)
 
+# --- Configuração do SQLAlchemy ---
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_PATH}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# --- Modelos ORM ---
+class User(db.Model):
+    __tablename__ = 'users'
+    id       = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(30), unique=True, nullable=False)
+    password = db.Column(db.String(128), nullable=False)
+    role     = db.Column(db.String(10), nullable=False, default='user')
+
+# --- Schemas de validação com Marshmallow ---
+class UserSchema(Schema):
+    username = fields.Str(required=True, validate=validate.Length(min=3, max=30))
+    password = fields.Str(required=True, validate=validate.Length(min=6))
+    role     = fields.Str(validate=validate.OneOf(['user', 'admin']), load_default='user')
+
+user_schema = UserSchema()
+
+# --- Decoradores de proteção de rota ---
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('username'):
+            return jsonify({'message': 'Login requerido'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get('role') != 'admin':
+            return jsonify({'message': 'Permissão negada'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+# --- Rotas públicas ---
 @app.route('/')
 def index():
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route("/login", methods=["POST"])
+@app.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    username = data.get("username")
-    password = data.get("password")
-    conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
-    cursor.execute("SELECT password, role FROM users WHERE username = ?", (username,))
-    result = cursor.fetchone(); conn.close()
-    if result and check_password_hash(result[0], password):
-        session["username"] = username
-        return jsonify({"message": "Login bem-sucedido", "role": result[1]})
-    return jsonify({"message": "Usuário ou senha inválidos"}), 401
-
-@app.route("/users", methods=["GET", "POST"])
-def users():
-    conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
-    if request.method == "GET":
-        cursor.execute("SELECT username, role FROM users")
-        data = [{"username": r[0], "role": r[1]} for r in cursor.fetchall()]
-        conn.close()
-        return jsonify(data)
-    data = request.form
-    username = data.get("username"); password = data.get("password"); role = data.get("role", "user")
-    if not username or not password:
-        conn.close()
-        return jsonify({"message": "Campos obrigatórios"}), 400
     try:
-        cursor.execute(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            (username, generate_password_hash(password), role)
-        )
-        conn.commit()
-        return jsonify({"message": "Usuário criado com sucesso"}), 201
-    except sqlite3.IntegrityError:
-        return jsonify({"message": "Usuário já existe"}), 400
-    finally:
-        conn.close()
+        data = request.json or {}
+        creds = user_schema.load(data, partial=('role',))
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+    except Exception:
+        return jsonify({'message': 'Erro no servidor'}), 500
 
-@app.route("/users/<username>", methods=["DELETE"])
-def delete_user(username):
-    conn = sqlite3.connect(DB_PATH); cursor = conn.cursor()
-    cursor.execute("DELETE FROM users WHERE username = ?", (username,))
-    conn.commit(); conn.close()
-    return jsonify({"message": "Usuário removido com sucesso"})
+    try:
+        user = User.query.filter_by(username=creds['username']).first()
+        if user and check_password_hash(user.password, creds['password']):
+            session['username'] = user.username
+            session['role']     = user.role
+            return jsonify({'message': 'Login bem-sucedido', 'role': user.role})
+        return jsonify({'message': 'Usuário ou senha inválidos'}), 401
+    except Exception:
+        return jsonify({'message': 'Erro no servidor'}), 500
 
-@app.route("/logout", methods=["POST"])
+@app.route('/logout', methods=['POST'])
+@login_required
 def logout():
     session.clear()
-    return jsonify({"message": "Logout realizado com sucesso"})
+    return jsonify({'message': 'Logout realizado com sucesso'})
 
+# --- Rotas protegidas (Admin) ---
+@app.route('/users', methods=['GET'])
+@login_required
+@admin_required
+def list_users():
+    users = User.query.with_entities(User.username, User.role).all()
+    return jsonify([{'username': u.username, 'role': u.role} for u in users])
+
+@app.route('/users', methods=['POST'])
+@login_required
+@admin_required
+def create_user():
+    try:
+        data = user_schema.load(request.form)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+    except Exception:
+        return jsonify({'message': 'Erro no servidor'}), 500
+
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'message': 'Usuário já existe'}), 400
+
+    try:
+        new_user = User(
+            username=data['username'],
+            password=generate_password_hash(data['password']),
+            role=data['role']
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({'message': 'Usuário criado com sucesso'}), 201
+    except Exception:
+        db.session.rollback()
+        return jsonify({'message': 'Erro no servidor'}), 500
+
+@app.route('/users/<username>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_user(username):
+    # Bloqueia exclusão do admin ou autoexclusão
+    if username == 'admin' or username == session.get('username'):
+        return jsonify({'message': 'Operação não permitida'}), 403
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({'message': 'Usuário não encontrado'}), 404
+
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'Usuário removido com sucesso'})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'message': 'Erro no servidor'}), 500
+
+# --- Inicialização ---
 if __name__ == '__main__':
-    init_db()
+    with app.app_context():
+        db.create_all()
+        if not User.query.filter_by(username='admin').first():
+            admin = User(
+                username='admin',
+                password=generate_password_hash('123456'),
+                role='admin'
+            )
+            db.session.add(admin)
+            db.session.commit()
     app.run(host='0.0.0.0', port=8080, debug=True)
