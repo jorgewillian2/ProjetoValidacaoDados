@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
 
 :root {
-  --primary: #0052cc;
-  --primary-hover: #003d99;
+  --primary: #991e24;
+  --primary-hover: #d99da0;
   --bg: #f7f9fc;
   --card-bg: #ffffff;
   --text: #222;
@@ -257,4 +257,10 @@ td > button:nth-child(2):hover {
 
 #submit-import {
   padding: 10px 20px;
+}
+
+/* Container rolável para a tabela de clientes */
+#data-container {
+  max-height: 400px;
+  overflow-y: auto;
 }
