@@ -70,31 +70,33 @@
         </div>
       </div>
 
-      <!-- PAINEL ADMIN -->
-      <div id="admin-panel" class="card" style="display:none;">
-        <h2>Gerenciar Usuários</h2>
-        <form id="user-form">
-          <input type="text" name="username" placeholder="Novo usuário" required />
-          <input type="password" name="password" placeholder="Senha" required />
-          <select name="role">
-            <option value="user">Usuário</option>
-            <option value="admin">Administrador</option>
-          </select>
-          <button type="submit">Criar Usuário</button>
-        </form>
-        <table id="user-table">
-          <thead>
-            <tr>
-              <th>Usuário</th>
-              <th>Perfil</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+     <div id="admin-panel" class="card" style="display:none;">
+  <h2>Gerenciar Usuários</h2>
+
+  <form id="user-form">
+    <input type="text" name="username" placeholder="Novo usuário" required />
+    <input type="password" name="password" placeholder="Senha" required />
+    <select name="role">
+      <option value="user">Usuário</option>
+      <option value="admin">Administrador</option>
+    </select>
+    <button type="submit">Criar Usuário</button>
+  </form>
+
+  <!-- aqui vão aparecer erros de validação -->
+  <p id="user-error" class="error" style="color:red; margin-top:8px;"></p>
+
+  <table id="user-table">
+    <thead>
+      <tr>
+        <th>Usuário</th>
+        <th>Perfil</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
   <!-- Modal de Importação Excel -->
   <div id="import-modal" class="modal" style="display:none;">
