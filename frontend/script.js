@@ -1,9 +1,8 @@
-// frontend/script.js
+(() => {
+  // URL da sua planilha
+  const SHEET_URL     = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
 
-// URL da sua planilha
-const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
-
-// Referências de elementos
+  // Referências de elementos
   const loginForm     = document.getElementById('login-form');
   const loginError    = document.getElementById('login-error');
   const loginCard     = document.getElementById('login');
@@ -25,23 +24,21 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
   const editForm      = document.getElementById('edit-form');
   const cancelEdit    = document.getElementById('cancel-edit');
 
-  // Novas referências para toggle e spinner
   const toggleDataBtn = document.getElementById('toggle-data');
   const dataContainer = document.getElementById('data-container');
-  const spinner       = document.createElement('div');
+
+  // Spinner global
+  const spinner = document.createElement('div');
   spinner.id = 'global-spinner';
   spinner.className = 'spinner hidden';
   document.body.appendChild(spinner);
+  const showSpinner = () => spinner.classList.remove('hidden');
+  const hideSpinner = () => spinner.classList.add('hidden');
 
   let editingIndex    = null;
   let selectedFile    = null;
   let dadosCarregados = [];
 
-  // Spinner helpers
-  const showSpinner = () => spinner.classList.remove('hidden');
-  const hideSpinner = () => spinner.classList.add('hidden');
-
-  // Inicialização
   document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', onLogin);
     logoutButton.addEventListener('click', onLogout);
@@ -81,12 +78,17 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
   // ─── Handlers de Login ────────────────────────────
   async function onLogin(e) {
     e.preventDefault();
-    const submitBtn = loginForm.querySelector('button[type=submit]');
-    submitBtn.disabled = true;
+    const btn = loginForm.querySelector('button[type=submit]');
+    btn.disabled = true;
     showSpinner();
-    const { username, password } = Object.fromEntries(new FormData(loginForm));
     try {
-      const res = await fetch('/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password })});
+      const { username, password } = Object.fromEntries(new FormData(loginForm));
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erro no login');
       sessionStorage.setItem('user', username);
@@ -95,26 +97,114 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
     } catch(err) {
       loginError.textContent = err.message;
     } finally {
-      submitBtn.disabled = false;
+      btn.disabled = false;
       hideSpinner();
     }
   }
 
   function onLogout() {
-    sessionStorage.clear();
-    location.reload();
+    fetch('/logout', { method: 'POST', credentials: 'include' })
+      .finally(() => {
+        sessionStorage.clear();
+        location.reload();
+      });
   }
 
   // ─── Mostra/Oculta Telas ──────────────────────────
   function showMain() {
     loginCard.style.display = 'none';
-    main.style.display = 'block';
+    main.style.display      = 'block';
     if (sessionStorage.getItem('role') === 'admin') {
       document.getElementById('admin-panel').style.display = 'block';
       loadUsers();
     }
     loadData();
   }
+
+  // ─── Usuários (Admin) ───────────────────────────
+  async function loadUsers() {
+    showSpinner();
+    try {
+      const res = await fetch('/users', { credentials: 'include' });
+      if (!res.ok) throw new Error('Falha ao listar usuários');
+      const users = await res.json();
+      const tbody = document.querySelector('#user-table tbody');
+      tbody.innerHTML = '';
+      users.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.username}</td>
+          <td>${u.role}</td>
+          <td><button onclick="deleteUser('${u.username}')">Excluir</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch(err) {
+      alert(err.message);
+    } finally {
+      hideSpinner();
+    }
+  }
+
+  async function onAddUser(e) {
+    e.preventDefault();
+    const btn      = document.querySelector('#user-form button[type=submit]');
+    const errorDiv = document.getElementById('user-error');
+    errorDiv.textContent = '';
+    btn.disabled = true;
+    showSpinner();
+
+    try {
+      const data = Object.fromEntries(new FormData(e.target));
+      const res  = await fetch('/users', {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
+        body:        JSON.stringify(data)
+      });
+
+      const payload = await res.json();
+
+      if (!res.ok) {
+        console.error('Erro ao criar usuário:', payload);
+        if (payload && typeof payload === 'object' && !payload.message) {
+          const msgs = Object.entries(payload).map(
+            ([field, msg]) => `${field}: ${ Array.isArray(msg) ? msg.join(', ') : msg }`
+          );
+          errorDiv.textContent = msgs.join(' — ');
+        } else {
+          errorDiv.textContent = payload.message || JSON.stringify(payload);
+        }
+        return;
+      }
+
+      e.target.reset();
+      loadUsers();
+    } catch (err) {
+      console.error('Erro desconhecido ao criar usuário', err);
+      errorDiv.textContent = 'Erro desconhecido ao criar usuário';
+    } finally {
+      btn.disabled = false;
+      hideSpinner();
+    }
+  }
+
+  window.deleteUser = async function(username) {
+    if (!confirm('Confirmar exclusão de usuário?')) return;
+    showSpinner();
+    try {
+      const res = await fetch(`/users/${username}`, {
+        method:      'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Falha ao remover usuário');
+      loadUsers();
+    } catch(err) {
+      alert(err.message);
+    } finally {
+      hideSpinner();
+    }
+  };
 
   // ─── Operações de Cliente ────────────────────────
   async function loadData() {
@@ -128,7 +218,14 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
       tbody.innerHTML = '';
       data.forEach((row,i) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row['Nome Completo']||''}</td><td>${row['CPF']||''}</td><td>${row['Numero']||''}</td><td><button class="btn-editar" onclick="openEditModal(${i})">Editar</button><button onclick="deleteRow(${i})">Excluir</button></td>`;
+        tr.innerHTML = `
+          <td>${row['Nome Completo']||''}</td>
+          <td>${row['CPF']||''}</td>
+          <td>${row['Numero']||''}</td>
+          <td>
+            <button class="btn-editar" onclick="openEditModal(${i})">Editar</button>
+            <button onclick="deleteRow(${i})">Excluir</button>
+          </td>`;
         tbody.appendChild(tr);
       });
     } catch(err) {
@@ -145,7 +242,11 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
     showSpinner();
     try {
       const data = Object.fromEntries(new FormData(addForm));
-      const res = await fetch(SHEET_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+      const res = await fetch(SHEET_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
       if (!res.ok) throw new Error('Erro ao adicionar cliente');
       addForm.reset();
       loadData();
@@ -171,11 +272,12 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
     }
   };
 
-  // ─── Busca ───────────────────────────────────────
   function filterClientTable() {
     const v = searchInput.value.toLowerCase().trim();
     document.querySelectorAll('#data-table tbody tr').forEach(tr => {
-      const text = Array.from(tr.children).slice(0,3).map(td=>td.textContent.toLowerCase()).join(' ');
+      const text = Array.from(tr.children).slice(0,3)
+        .map(td=>td.textContent.toLowerCase())
+        .join(' ');
       tr.style.display = text.includes(v) ? '' : 'none';
     });
   }
@@ -184,12 +286,17 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
   function initImportModal() {
     openImport.addEventListener('click', () => importModal.style.display = 'flex');
     closeImport.addEventListener('click', resetImportModal);
-    ['dragenter','dragover'].forEach(ev => dropArea.addEventListener(ev, e=>{e.preventDefault();dropArea.classList.add('dragover');}));
-    ['dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, e=>{e.preventDefault();dropArea.classList.remove('dragover');}));
-    dropArea.addEventListener('drop', e=>handleImportFile(e.dataTransfer.files[0]));
-    dropArea.addEventListener('click', ()=> fileInput.click());
-    document.getElementById('click-upload').addEventListener('click', ()=> fileInput.click());
-    fileInput.addEventListener('change', ()=> handleImportFile(fileInput.files[0]));
+    ['dragenter','dragover'].forEach(ev =>
+      dropArea.addEventListener(ev, e=>{e.preventDefault();dropArea.classList.add('dragover');})
+    );
+    ['dragleave','drop'].forEach(ev =>
+      dropArea.addEventListener(ev, e=>{e.preventDefault();dropArea.classList.remove('dragover');})
+    );
+    dropArea.addEventListener('drop', e=> handleImportFile(e.dataTransfer.files[0]));
+    dropArea.addEventListener('click', () => fileInput.click());
+    document.getElementById('click-upload')
+      .addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => handleImportFile(fileInput.files[0]));
     submitImport.addEventListener('click', processImport);
   }
 
@@ -213,9 +320,14 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
         const wb = XLSX.read(data, { type: 'array' });
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
         const required = ['Nome Completo','CPF','Numero'];
-        if (!rows.length || !required.every(c=>rows[0].hasOwnProperty(c))) throw new Error('Template inválido');
+        if (!rows.length || !required.every(c=>rows[0].hasOwnProperty(c)))
+          throw new Error('Template inválido');
         for (const row of rows) {
-          const res = await fetch(SHEET_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(row)});
+          const res = await fetch(SHEET_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(row)
+          });
           if (!res.ok) throw new Error('Erro na importação');
         }
         loadData();
@@ -232,7 +344,9 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
 
   function resetImportModal() {
     importModal.style.display = 'none';
-    dropArea.innerHTML = `<p>Arraste o arquivo aqui, ou <span id="click-upload">clicar para selecionar</span></p>`;
+    dropArea.innerHTML = `
+      <p>Arraste o arquivo aqui, ou
+      <span id="click-upload">clicar para selecionar</span></p>`;
     fileInput.value = '';
     selectedFile = null;
     submitImport.disabled = true;
@@ -240,16 +354,29 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
 
   // ─── Edição de Clientes ─────────────────────────
   function initEditModal() {
-    cancelEdit.addEventListener('click', () => { editModal.style.display = 'none'; editingIndex = null; });
+    cancelEdit.addEventListener('click', () => {
+      editModal.style.display = 'none';
+      editingIndex = null;
+    });
     editForm.addEventListener('submit', async e => {
       e.preventDefault();
       const btn = editForm.querySelector('button[type=submit]');
       btn.disabled = true;
       showSpinner();
       try {
-        const updated = { 'Nome Completo': document.getElementById('edit-nome').value, 'CPF': document.getElementById('edit-cpf').value, 'Numero': document.getElementById('edit-numero').value };
-        let res = await fetch(`${SHEET_URL}/${editingIndex}`, { method:'DELETE' }); if (!res.ok) throw new Error('Falha ao atualizar');
-        res = await fetch(SHEET_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(updated)}); if (!res.ok) throw new Error('Falha ao criar nova versão');
+        const updated = {
+          'Nome Completo': document.getElementById('edit-nome').value,
+          'CPF':           document.getElementById('edit-cpf').value,
+          'Numero':        document.getElementById('edit-numero').value
+        };
+        let res = await fetch(`${SHEET_URL}/${editingIndex}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Falha ao atualizar');
+        res = await fetch(SHEET_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(updated)
+        });
+        if (!res.ok) throw new Error('Falha ao criar nova versão');
         editModal.style.display = 'none';
         loadData();
       } catch(err) {
@@ -271,55 +398,4 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/SUA_CHAVE_AQUI';
     editModal.style.display = 'flex';
   };
 
-  // ─── Usuários (Admin) ───────────────────────────
-  async function onAddUser(e) {
-    e.preventDefault();
-    const btn = document.querySelector('#user-form button[type=submit]');
-    btn.disabled = true;
-    showSpinner();
-    try {
-      const res = await fetch('/users', { method:'POST', body: new URLSearchParams(new FormData(e.target)) });
-      if (!res.ok) throw new Error('Falha ao criar usuário');
-      e.target.reset();
-      loadUsers();
-    } catch(err) {
-      alert(err.message);
-    } finally {
-      btn.disabled = false;
-      hideSpinner();
-    }
-  }
-
-  async function loadUsers() {
-    showSpinner();
-    try {
-      const res = await fetch('/users'); if (!res.ok) throw new Error('Falha ao listar usuários');
-      const users = await res.json();
-      const tbody = document.querySelector('#user-table tbody');
-      tbody.innerHTML = '';
-      users.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td><button onclick="deleteUser('${u.username}')">Excluir</button></td>`;
-        tbody.appendChild(tr);
-      });
-    } catch(err) {
-      alert(err.message);
-    } finally {
-      hideSpinner();
-    }
-  }
-
-  window.deleteUser = async function(username) {
-    if (!confirm('Confirmar exclusão de usuário?')) return;
-    showSpinner();
-    try {
-      const res = await fetch(`/users/${username}`, { method:'DELETE' });
-      if (!res.ok) throw new Error('Falha ao remover usuário');
-      loadUsers();
-    } catch(err) {
-      alert(err.message);
-    } finally {
-      hideSpinner();
-    }
-  };
 })();
